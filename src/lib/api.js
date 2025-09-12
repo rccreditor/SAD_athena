@@ -197,6 +197,12 @@ export const api = {
     console.log(`Updated user ${userId} status to ${status}`);
   },
 
+  async deleteUser(userId) {
+    await delay(300);
+    // Mock implementation - in real app this would delete the user in the database
+    console.log(`Deleted user ${userId}`);
+  },
+
   // Billing
   async getBillingRecords() {
     await delay(400);

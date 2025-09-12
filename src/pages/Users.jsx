@@ -33,6 +33,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Users as UsersIcon,
   Search,
   MoreHorizontal,
@@ -44,6 +55,7 @@ import {
   CheckCircle,
   Settings
 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -151,6 +163,17 @@ export default function Users() {
     } catch (error) {
       toast.error("Failed to update user status");
       console.error("Failed to update user status:", error);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      await api.deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      toast.success("User deleted");
+    } catch (error) {
+      toast.error("Failed to delete user");
+      console.error("Failed to delete user:", error);
     }
   };
 
@@ -345,6 +368,31 @@ export default function Users() {
                           <RotateCcw className="h-4 w-4 mr-2" />
                           Reset Password
                         </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this user?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. The user will be permanently removed.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
