@@ -81,7 +81,7 @@ export default function Dashboard() {
     return (
       <div className="p-8">
         <div className="text-center text-muted-foreground">
-          Failed to load dashboard metrics
+          Failed to load dashboard metrics.
         </div>
       </div>
     );
