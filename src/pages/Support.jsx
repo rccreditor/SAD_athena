@@ -368,9 +368,7 @@ export default function Support() {
           <h1 className="text-3xl font-bold">Support Tickets</h1>
           <p className="text-muted-foreground">Manage customer support requests and inquiries</p>
         </div>
-        <Button>
-          Create Ticket
-        </Button>
+        
       </div>
 
       {/* Filters */}

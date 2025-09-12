@@ -22,6 +22,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Building2,
   Search,
   MoreHorizontal,
@@ -30,7 +41,8 @@ import {
   HardDrive,
   Calendar,
   Eye,
-  UserX
+  UserX,
+  Trash2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -77,6 +89,16 @@ export default function Organizations() {
       );
     } catch (error) {
       console.error("Failed to suspend organization:", error);
+    }
+  };
+
+  const handleDeleteOrganization = async (orgId) => {
+    try {
+      await api.deleteOrganization(orgId);
+      setOrganizations(prev => prev.filter(o => o.id !== orgId));
+      setFilteredOrgs(prev => prev.filter(o => o.id !== orgId));
+    } catch (error) {
+      console.error("Failed to delete organization:", error);
     }
   };
 
@@ -175,7 +197,7 @@ export default function Organizations() {
                 <TableHead className="font-semibold">Organization</TableHead>
                 <TableHead className="font-semibold">Subscription</TableHead>
                 <TableHead className="font-semibold">Users</TableHead>
-                <TableHead className="font-semibold">Used tokens</TableHead>
+                {/* <TableHead className="font-semibold">Used tokens</TableHead> */}
                 <TableHead className="font-semibold">Storage</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -234,17 +256,17 @@ export default function Organizations() {
                     </div>
                   </TableCell>
                   
-                   <TableCell>
-                     <div className="space-y-1">
-                       <div className="font-medium flex items-center space-x-1">
-                         <HardDrive className="h-4 w-4 text-muted-foreground" />
-                         <span>{org.usedTokens.toLocaleString()} / {org.allotedTokens.toLocaleString()}</span>
-                       </div>
-                       <div className="text-sm text-muted-foreground">
-                         {((org.usedTokens / org.allotedTokens) * 100).toFixed(1)}% used
-                       </div>
-                     </div>
-                   </TableCell>
+                  {/* <TableCell>
+                    <div className="space-y-1">
+                      <div className="font-medium flex items-center space-x-1">
+                        <HardDrive className="h-4 w-4 text-muted-foreground" />
+                        <span>{org.usedTokens.toLocaleString()} / {org.allotedTokens.toLocaleString()}</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {((org.usedTokens / org.allotedTokens) * 100).toFixed(1)}% used
+                      </div>
+                    </div>
+                  </TableCell> */}
                   
                   <TableCell>
                     <div className="space-y-1">
@@ -265,7 +287,7 @@ export default function Organizations() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuItem 
                           onClick={() => handleViewDetail(org.id)}
                           className="cursor-pointer"
@@ -282,6 +304,29 @@ export default function Organizations() {
                             Suspend Service
                           </DropdownMenuItem>
                         )}
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Organization
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this organization?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. All organization data will be permanently removed.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteOrganization(org.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

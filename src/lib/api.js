@@ -12,7 +12,7 @@ const mockOrganizations = [
     instructors: 15,
     learners: 235,
     allotedTokens: 50000,
-    usedTokens: 32500,
+    // usedTokens: 32500,
     storageUsed: 85.6,
     status: 'Active',
     createdAt: '2023-01-15',
@@ -28,7 +28,7 @@ const mockOrganizations = [
     instructors: 8,
     learners: 172,
     allotedTokens: 50000,
-    usedTokens: 18750,
+    // usedTokens: 18750,
     storageUsed: 45.3,
     status: 'Active',
     createdAt: '2023-06-20',
@@ -44,7 +44,7 @@ const mockOrganizations = [
     instructors: 12,
     learners: 308,
     allotedTokens: 50000,
-    usedTokens: 42750,
+    // usedTokens: 42750,
     storageUsed: 92.8,
     status: 'Active',
     createdAt: '2022-11-03',
@@ -60,7 +60,7 @@ const mockOrganizations = [
     instructors: 6,
     learners: 150,
     allotedTokens: 50000,
-    usedTokens: 4500,
+    // usedTokens: 4500,
     storageUsed: 34.2,
     status: 'Trial',
     createdAt: '2024-08-15',
@@ -76,7 +76,7 @@ const mockOrganizations = [
     instructors: 10,
     learners: 280,
     allotedTokens: 50000,
-    usedTokens: 35000,
+    // usedTokens: 35000,
     storageUsed: 67.4,
     status: 'Active',
     createdAt: '2023-03-10',
@@ -128,6 +128,16 @@ export const api = {
     if (org) {
       org.status = status;
     }
+  },
+
+  async deleteOrganization(id) {
+    await delay(400);
+    const index = mockOrganizations.findIndex(o => o.id === id);
+    if (index !== -1) {
+      mockOrganizations.splice(index, 1);
+    }
+    // In real implementation, this would call your backend API
+    console.log(`Deleted organization ${id}`);
   },
 
   // Users
