@@ -11,7 +11,7 @@ export default ({ mode }) => ({
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve("D:\\athena-SAD", "./src"),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });
