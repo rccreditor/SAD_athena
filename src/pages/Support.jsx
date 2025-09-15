@@ -146,12 +146,15 @@ export default function Support() {
   }, []);
 
   const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
+    const title = (ticket.title || '').toString().toLowerCase();
+    const org = (ticket.organizationName || ticket.organization || '').toString().toLowerCase();
+    const createdBy = (ticket.createdBy || '').toString().toLowerCase();
+    const term = (searchTerm || '').toString().toLowerCase();
+
+    const matchesSearch = title.includes(term) || org.includes(term) || createdBy.includes(term);
     const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter;
-    const matchesOrganization = organizationFilter === "all" || ticket.organization === organizationFilter;
+    const matchesOrganization = organizationFilter === "all" || (ticket.organizationName || ticket.organization || '') === organizationFilter;
     
     return matchesSearch && matchesStatus && matchesPriority && matchesOrganization;
   });
@@ -181,7 +184,7 @@ export default function Support() {
     
     setSelectedTicket({
       ...selectedTicket,
-      replies: [...selectedTicket.replies, reply]
+      replies: [...(selectedTicket.replies || []), reply]
     });
     setNewReply("");
     setShowReplyForm(false);
@@ -299,7 +302,7 @@ export default function Support() {
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{selectedTicket.organization}</span>
+                  <span className="text-sm">{selectedTicket.organizationName || selectedTicket.organization || 'Unknown'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -471,7 +474,7 @@ export default function Support() {
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <Building2 className="h-4 w-4" />
-                        <span>{ticket.organization}</span>
+                        <span>{ticket.organizationName || ticket.organization || 'Unknown'}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <User className="h-4 w-4" />
@@ -483,7 +486,7 @@ export default function Support() {
                       </div>
                       <div className="flex items-center space-x-1">
                         <MessageCircle className="h-4 w-4" />
-                        <span>{ticket.replies.length} replies</span>
+                        <span>{(ticket.replies || []).length} replies</span>
                       </div>
                     </div>
                   </div>
