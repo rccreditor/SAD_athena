@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Clock, User, Building2, MessageCircle, Filter, Search, MoreVertical, Send, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/lib/api";
 
-// Mock data
-const mockTickets = [
+// Fallback mock (used if API fails)
+const fallbackTickets = [
   {
     id: "TKT-001",
     title: "Unable to access course materials",
@@ -126,8 +127,25 @@ export default function Support() {
   const [searchTerm, setSearchTerm] = useState("");
   const [newReply, setNewReply] = useState("");
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTickets = mockTickets.filter(ticket => {
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const data = await api.getSupportTickets();
+        setTickets(data);
+      } catch (e) {
+        console.error('Failed to fetch tickets, using fallback data', e);
+        setTickets(fallbackTickets);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTickets();
+  }, []);
+
+  const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          ticket.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          ticket.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
@@ -139,7 +157,7 @@ export default function Support() {
   });
 
   // Get unique organizations for filter dropdown
-  const uniqueOrganizations = [...new Set(mockTickets.map(ticket => ticket.organization))].sort();
+  const uniqueOrganizations = [...new Set(tickets.map(ticket => ticket.organizationName || ticket.organization))].sort();
 
   const handleStatusChange = (ticketId, newStatus) => {
     // In a real app, this would update the backend

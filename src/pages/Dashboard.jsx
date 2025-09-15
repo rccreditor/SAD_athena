@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
+  const [overview, setOverview] = useState(null);
+  const [apiTimeMs, setApiTimeMs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "MM"));
@@ -47,18 +49,23 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const fetchMetrics = async () => {
+    const fetchData = async () => {
       try {
-        const data = await api.getGlobalMetrics();
-        setMetrics(data);
+        const [metricsData, overviewData, apiResp] = await Promise.all([
+          api.getGlobalMetrics(),
+          api.getGlobalOverview(),
+          api.getApiResponseTime(),
+        ]);
+        setMetrics(metricsData);
+        setOverview(overviewData);
+        setApiTimeMs(apiResp.responseTimeMs);
       } catch (error) {
-        console.error("Failed to fetch metrics:", error);
+        console.error("Failed to fetch dashboard data:", error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchMetrics();
+    fetchData();
   }, []);
 
   if (loading) {
@@ -110,11 +117,11 @@ export default function Dashboard() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">API Response</span>
-                <span className="text-sm font-medium text-accent">152ms</span>
+                <span className="text-sm font-medium text-accent">{apiTimeMs ? `${apiTimeMs}ms` : '—'}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Storage Used</span>
-                <span className="text-sm font-medium text-accent">2.4TB</span>
+                <span className="text-sm text-muted-foreground">Storage Used (total)</span>
+                <span className="text-sm font-medium text-accent">{overview ? `${overview.storageUsedTotal.toFixed(1)} GB` : '—'}</span>
               </div>
             </div>
           </CardContent>
@@ -131,11 +138,11 @@ export default function Dashboard() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Monthly Subscriptions</span>
-                <span className="text-sm font-medium">$89K</span>
+                <span className="text-sm font-medium">${overview ? overview.revenueMonthly.toLocaleString() : '—'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Annual Subscriptions</span>
-                <span className="text-sm font-medium">$156K</span>
+                <span className="text-sm font-medium">${overview ? overview.revenueAnnual.toLocaleString() : '—'}</span>
               </div>
             </div>
           </CardContent>
@@ -226,7 +233,7 @@ export default function Dashboard() {
               </div>
               
               <p className="text-4xl font-bold text-foreground">
-                ${metrics.revenue.toLocaleString()}
+                ${overview ? overview.revenueTotal.toLocaleString() : metrics.revenue.toLocaleString()}
               </p>
               <p className="text-base text-foreground">
                 Recurring subscription revenue
