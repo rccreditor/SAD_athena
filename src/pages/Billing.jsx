@@ -14,6 +14,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -42,6 +47,16 @@ export default function Billing() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [subscriptionFilter, setSubscriptionFilter] = useState("all");
+  const [openReminderForOrgId, setOpenReminderForOrgId] = useState(null);
+  const [admins, setAdmins] = useState([]);
+  const [selectedAdminIds, setSelectedAdminIds] = useState([]);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
+  const [openInvoiceForOrgId, setOpenInvoiceForOrgId] = useState(null);
+  const [invoiceHistory, setInvoiceHistory] = useState([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   useEffect(() => {
     const fetchBillingData = async () => {
@@ -70,6 +85,51 @@ export default function Billing() {
     
     setFilteredRecords(filtered);
   }, [searchQuery, statusFilter, subscriptionFilter, billingRecords]);
+
+  const openSendReminder = async (organizationId) => {
+    setOpenReminderForOrgId(organizationId);
+    setSubject("");
+    setMessage("");
+    setAdmins([]);
+    setSelectedAdminIds([]);
+    try {
+      const list = await api.getAdmins(organizationId);
+      setAdmins(list);
+      setSelectedAdminIds(list.map(a => a.id));
+    } catch (e) {
+      console.error("Failed to load admins", e);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedAdminIds.length === admins.length) {
+      setSelectedAdminIds([]);
+    } else {
+      setSelectedAdminIds(admins.map(a => a.id));
+    }
+  };
+
+  const toggleAdmin = (id) => {
+    setSelectedAdminIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleSendReminder = async () => {
+    if (!openReminderForOrgId) return;
+    if (!subject.trim() || !message.trim() || selectedAdminIds.length === 0) {
+      toast({ title: "Missing info", description: "Subject, message and at least one admin are required." });
+      return;
+    }
+    try {
+      setSending(true);
+      const res = await api.sendReminder({ organizationId: openReminderForOrgId, subject, message, adminIds: selectedAdminIds });
+      toast({ title: "Reminder sent", description: `${res.sent} sent, ${res.failed} failed` });
+      setOpenReminderForOrgId(null);
+    } catch (e) {
+      toast({ title: "Failed to send", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -278,11 +338,23 @@ export default function Billing() {
                   
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" className="text-xs">
+                      <Button size="sm" variant="outline" className="text-xs" onClick={() => openSendReminder(record.organizationId)}>
                         <Mail className="h-3 w-3 mr-1" />
                         Send Reminder
                       </Button>
-                      <Button size="sm" variant="outline" className="text-xs">
+                      <Button size="sm" variant="outline" className="text-xs" onClick={async () => {
+                        setOpenInvoiceForOrgId(record.organizationId);
+                        setLoadingInvoices(true);
+                        try {
+                          const list = await api.getInvoiceHistory(record.organizationId);
+                          setInvoiceHistory(list);
+                        } catch (e) {
+                          console.error('Failed to load invoices', e);
+                          setInvoiceHistory([]);
+                        } finally {
+                          setLoadingInvoices(false);
+                        }
+                      }}>
                         <CreditCard className="h-3 w-3 mr-1" />
                         View Invoice
                       </Button>
@@ -307,6 +379,108 @@ export default function Billing() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!openReminderForOrgId} onOpenChange={(open) => !open && setOpenReminderForOrgId(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Send Reminder</DialogTitle>
+            <DialogDescription>
+              Select recipients, set a subject and compose your message.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="font-medium">Recipients (Admins)</Label>
+                <div className="text-sm text-muted-foreground">
+                  {selectedAdminIds.length}/{admins.length} selected
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Checkbox checked={selectedAdminIds.length === admins.length && admins.length > 0} onCheckedChange={toggleSelectAll} />
+                <span className="text-sm">Select all</span>
+              </div>
+              <div className="max-h-52 overflow-auto rounded-md border p-2">
+                {admins.length === 0 && (
+                  <div className="text-sm text-muted-foreground">No admins found.</div>
+                )}
+                {admins.map(a => (
+                  <label key={a.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted/40 cursor-pointer">
+                    <Checkbox checked={selectedAdminIds.includes(a.id)} onCheckedChange={() => toggleAdmin(a.id)} />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{a.name}</div>
+                      <div className="text-xs text-muted-foreground">{a.email}</div>
+                    </div>
+                    <Badge variant="outline">{a.role}</Badge>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" placeholder="Enter subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="message">Message</Label>
+              <Textarea id="message" placeholder="Write your message..." rows={6} value={message} onChange={(e) => setMessage(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenReminderForOrgId(null)} disabled={sending}>Cancel</Button>
+            <Button onClick={handleSendReminder} disabled={sending || selectedAdminIds.length === 0 || !subject.trim() || !message.trim()}>
+              {sending ? 'Sending...' : `Send to ${selectedAdminIds.length} admin${selectedAdminIds.length === 1 ? '' : 's'}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice history dialog */}
+      <Dialog open={!!openInvoiceForOrgId} onOpenChange={(open) => !open && setOpenInvoiceForOrgId(null)}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Invoice History</DialogTitle>
+            <DialogDescription>
+              List of previous invoices and payment status.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto">
+            {loadingInvoices ? (
+              <div className="p-6 text-sm text-muted-foreground">Loading invoices...</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-semibold">Invoice ID</TableHead>
+                    <TableHead className="font-semibold">Amount</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Paid Date</TableHead>
+                    <TableHead className="font-semibold">Due Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoiceHistory.map(inv => (
+                    <TableRow key={inv.id}>
+                      <TableCell>{inv.id}</TableCell>
+                      <TableCell>${inv.amount.toLocaleString()}</TableCell>
+                      <TableCell>{inv.status}</TableCell>
+                      <TableCell>{inv.paidDate ? new Date(inv.paidDate).toLocaleDateString() : '—'}</TableCell>
+                      <TableCell>{new Date(inv.dueDate).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                  {invoiceHistory.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">No invoices found.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenInvoiceForOrgId(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

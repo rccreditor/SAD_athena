@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Clock, User, Building2, MessageCircle, Filter, Search, MoreVertical, Send, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/lib/api";
 
-// Mock data
-const mockTickets = [
+// Fallback mock (used if API fails)
+const fallbackTickets = [
   {
     id: "TKT-001",
     title: "Unable to access course materials",
@@ -126,20 +127,40 @@ export default function Support() {
   const [searchTerm, setSearchTerm] = useState("");
   const [newReply, setNewReply] = useState("");
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTickets = mockTickets.filter(ticket => {
-    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const data = await api.getSupportTickets();
+        setTickets(data);
+      } catch (e) {
+        console.error('Failed to fetch tickets, using fallback data', e);
+        setTickets(fallbackTickets);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTickets();
+  }, []);
+
+  const filteredTickets = tickets.filter(ticket => {
+    const title = (ticket.title || '').toString().toLowerCase();
+    const org = (ticket.organizationName || ticket.organization || '').toString().toLowerCase();
+    const createdBy = (ticket.createdBy || '').toString().toLowerCase();
+    const term = (searchTerm || '').toString().toLowerCase();
+
+    const matchesSearch = title.includes(term) || org.includes(term) || createdBy.includes(term);
     const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter;
-    const matchesOrganization = organizationFilter === "all" || ticket.organization === organizationFilter;
+    const matchesOrganization = organizationFilter === "all" || (ticket.organizationName || ticket.organization || '') === organizationFilter;
     
     return matchesSearch && matchesStatus && matchesPriority && matchesOrganization;
   });
 
   // Get unique organizations for filter dropdown
-  const uniqueOrganizations = [...new Set(mockTickets.map(ticket => ticket.organization))].sort();
+  const uniqueOrganizations = [...new Set(tickets.map(ticket => ticket.organizationName || ticket.organization))].sort();
 
   const handleStatusChange = (ticketId, newStatus) => {
     // In a real app, this would update the backend
@@ -163,7 +184,7 @@ export default function Support() {
     
     setSelectedTicket({
       ...selectedTicket,
-      replies: [...selectedTicket.replies, reply]
+      replies: [...(selectedTicket.replies || []), reply]
     });
     setNewReply("");
     setShowReplyForm(false);
@@ -281,7 +302,7 @@ export default function Support() {
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{selectedTicket.organization}</span>
+                  <span className="text-sm">{selectedTicket.organizationName || selectedTicket.organization || 'Unknown'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -453,7 +474,7 @@ export default function Support() {
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <Building2 className="h-4 w-4" />
-                        <span>{ticket.organization}</span>
+                        <span>{ticket.organizationName || ticket.organization || 'Unknown'}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <User className="h-4 w-4" />
@@ -465,7 +486,7 @@ export default function Support() {
                       </div>
                       <div className="flex items-center space-x-1">
                         <MessageCircle className="h-4 w-4" />
-                        <span>{ticket.replies.length} replies</span>
+                        <span>{(ticket.replies || []).length} replies</span>
                       </div>
                     </div>
                   </div>
