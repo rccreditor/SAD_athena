@@ -197,7 +197,7 @@ export default function Organizations() {
                 <TableHead className="font-semibold">Organization</TableHead>
                 <TableHead className="font-semibold">Subscription</TableHead>
                 <TableHead className="font-semibold">Users</TableHead>
-                {/* <TableHead className="font-semibold">Used tokens</TableHead> */}
+                <TableHead className="font-semibold">AI Tokens</TableHead>
                 <TableHead className="font-semibold">Storage</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -256,17 +256,17 @@ export default function Organizations() {
                     </div>
                   </TableCell>
                   
-                  {/* <TableCell>
+                  <TableCell>
                     <div className="space-y-1">
                       <div className="font-medium flex items-center space-x-1">
                         <HardDrive className="h-4 w-4 text-muted-foreground" />
-                        <span>{org.usedTokens.toLocaleString()} / {org.allotedTokens.toLocaleString()}</span>
+                        <span>{(org.usedTokens || 0).toLocaleString()} / {(org.allotedTokens || 0).toLocaleString()}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {((org.usedTokens / org.allotedTokens) * 100).toFixed(1)}% used
+                        {org.allotedTokens ? ((org.usedTokens || 0) / org.allotedTokens * 100).toFixed(1) : '0.0'}% used
                       </div>
                     </div>
-                  </TableCell> */}
+                  </TableCell>
                   
                   <TableCell>
                     <div className="space-y-1">
